@@ -34,135 +34,96 @@ Problem Description:
 ## TA hour
 <i class="fa fa-diamond"></i> Keywords: `keras.backend`, `gradients`
 
-<div id="doc" class="markdown-body container-fluid" style="position: relative;"><h1 id="hw3-手把手-q5"><a class="anchor hidden-xs" href="#hw3-手把手-q5" title="hw3-手把手-q5"><span class="octicon octicon-link"></span></a>HW3 手把手 Q5</h1><pre><code class="python=3.6 hljs"><span class="hljs-comment">#!/usr/bin/env python</span>
+<div id="doc" class="markdown-body container-fluid" style="position: relative;"><h1 id="hw3-手把手-q4"><a class="anchor hidden-xs" href="#hw3-手把手-q4" title="hw3-手把手-q4"><span class="octicon octicon-link"></span></a>HW3 手把手 Q4</h1><pre><code class="python=3.6 hljs"><span class="hljs-comment">#!/usr/bin/env python</span>
 <span class="hljs-comment"># -*- coding: utf-8 -*-</span>
+
 <span class="hljs-keyword">import</span> os
-<span class="hljs-keyword">import</span> sys
 <span class="hljs-keyword">import</span> argparse
-<span class="hljs-keyword">import</span> matplotlib.pyplot <span class="hljs-keyword">as</span> plt
 <span class="hljs-keyword">from</span> keras.models <span class="hljs-keyword">import</span> load_model
-<span class="hljs-keyword">from</span> keras <span class="hljs-keyword">import</span> backend <span class="hljs-keyword">as</span> K
 <span class="hljs-keyword">from</span> termcolor <span class="hljs-keyword">import</span> colored,cprint
-<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> keras.backend <span class="hljs-keyword">as</span> K
 <span class="hljs-keyword">from</span> utils <span class="hljs-keyword">import</span> *
-
-base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-exp_dir = <span class="hljs-string">'exp'</span>
-<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.exists(exp_dir):
-    os.makedirs(exp_dir)
-vis_dir = os.path.join(<span class="hljs-string">'image'</span>,<span class="hljs-string">'vis_layer'</span>)
-<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.exists(vis_dir):
-    os.makedirs(vis_dir)
-filter_dir = os.path.join(<span class="hljs-string">'image'</span>,<span class="hljs-string">'vis_filter'</span>)
-<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.exists(filter_dir):
-    os.makedirs(filter_dir)
-
-nb_class = <span class="hljs-number">7</span>
-LR_RATE = <span class="hljs-number">2</span> * <span class="hljs-number">1e-2</span>
-NUM_STEPS = <span class="hljs-number">200</span>
-RECORD_FREQ = <span class="hljs-number">10</span>
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> matplotlib.pyplot <span class="hljs-keyword">as</span> plt
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">deprocess_image</span><span class="hljs-params">(x)</span>:</span>
     <span class="hljs-string">"""
-    As same as that in problem 4.
+    Hint: Normalize and Clip
     """</span>
     <span class="hljs-keyword">return</span> x
 
+base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+img_dir = os.path.join(base_dir, <span class="hljs-string">'image'</span>)
+<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.exists(img_dir):
+    os.makedirs(img_dir)
+cmap_dir = os.path.join(img_dir, <span class="hljs-string">'cmap'</span>)
+<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.exists(cmap_dir):
+    os.makedirs(cmap_dir)
+partial_see_dir = os.path.join(img_dir,<span class="hljs-string">'partial_see'</span>)
+<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.exists(partial_see_dir):
+    os.makedirs(partial_see_dir)
+model_dir = os.path.join(base_dir, <span class="hljs-string">'model'</span>)
+
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>:</span>
-    parser = argparse.ArgumentParser(prog=<span class="hljs-string">'visFilter.py'</span>,
-            description=<span class="hljs-string">'Visualize CNN filter.'</span>)
-    parser.add_argument(<span class="hljs-string">'--model'</span>,type=str,default=<span class="hljs-string">'simple'</span>,choices=[<span class="hljs-string">'simple'</span>,<span class="hljs-string">'NTUEE'</span>],
-            metavar=<span class="hljs-string">'&lt;model&gt;'</span>)
-    parser.add_argument(<span class="hljs-string">'--epoch'</span>,type=int,metavar=<span class="hljs-string">'&lt;#epoch&gt;'</span>,default=<span class="hljs-number">20</span>)
-    parser.add_argument(<span class="hljs-string">'--mode'</span>,type=int,metavar=<span class="hljs-string">'&lt;visMode&gt;'</span>,default=<span class="hljs-number">1</span>,choices=[<span class="hljs-number">1</span>,<span class="hljs-number">2</span>])
-    parser.add_argument(<span class="hljs-string">'--batch'</span>,type=int,metavar=<span class="hljs-string">'&lt;batch_size&gt;'</span>,default=<span class="hljs-number">64</span>)
-    parser.add_argument(<span class="hljs-string">'--idx'</span>,type=int,metavar=<span class="hljs-string">'&lt;suffix&gt;'</span>,required=<span class="hljs-keyword">True</span>)
+    parser = argparse.ArgumentParser(prog=<span class="hljs-string">'plot_saliency.py'</span>,
+            description=<span class="hljs-string">'ML-Assignment3 visualize attention heat map.'</span>)
+    parser.add_argument(<span class="hljs-string">'--epoch'</span>, type=int, metavar=<span class="hljs-string">'&lt;#epoch&gt;'</span>, default=<span class="hljs-number">1</span>)
     args = parser.parse_args()
-    store_path = <span class="hljs-string">"{}_epoch{}_{}"</span>.format(args.model,args.epoch,args.idx)
-    print(colored(<span class="hljs-string">"Loading model from {}"</span>.format(store_path),<span class="hljs-string">'yellow'</span>,attrs=[<span class="hljs-string">'bold'</span>]))
-    model_path = os.path.join(exp_dir,store_path,<span class="hljs-string">'model.h5'</span>)
-    emotion_classifier = load_model(<span class="hljs-string">'model/model-{}.h5'</span>.format(args.epoch))
+    model_name = <span class="hljs-string">"model-%s.h5"</span> %str(args.epoch)
+    model_path = os.path.join(model_dir, model_name)
+    emotion_classifier = load_model(model_path)
+    print(colored(<span class="hljs-string">"Loaded model from {}"</span>.format(model_name), <span class="hljs-string">'yellow'</span>, attrs=[<span class="hljs-string">'bold'</span>]))
 
-
-    layer_dict = dict([layer.name, layer] <span class="hljs-keyword">for</span> layer <span class="hljs-keyword">in</span> emotion_classifier.layers[<span class="hljs-number">1</span>:])
-
-    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">normalize</span><span class="hljs-params">(x)</span>:</span>
-        <span class="hljs-comment"># utility function to normalize a tensor by its L2 norm</span>
-        <span class="hljs-keyword">return</span> x / (K.sqrt(K.mean(K.square(x))) + <span class="hljs-number">1e-5</span>)
-
-    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">grad_ascent</span><span class="hljs-params">(num_step,input_image_data,iter_func)</span>:</span>
-        <span class="hljs-string">"""
-        Implement this function!
-        """</span>
-        <span class="hljs-keyword">return</span> filter_images
-
+    private_pixels = load_pickle(<span class="hljs-string">'fer2013/test_with_ans_pixels.pkl'</span>)
+    private_pixels = [ np.fromstring(private_pixels[i], dtype=float, sep=<span class="hljs-string">' '</span>).reshape((<span class="hljs-number">1</span>, <span class="hljs-number">48</span>, <span class="hljs-number">48</span>, <span class="hljs-number">1</span>)) 
+                       <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(len(private_pixels)) ]
     input_img = emotion_classifier.input
-    <span class="hljs-comment"># visualize the area CNN see</span>
-    <span class="hljs-keyword">if</span> args.mode == <span class="hljs-number">1</span>:
-        collect_layers = list()
-        collect_layers.append(K.function([input_img,K.learning_phase()],[layer_dict[<span class="hljs-string">'zero_padding2d_1'</span>].output]))
+    img_ids = [<span class="hljs-number">17</span>]
 
-        dev_feat = load_pickle(<span class="hljs-string">'fer2013/test_with_ans_pixels.pkl'</span>)
-        dev_label = load_pickle(<span class="hljs-string">'fer2013/test_with_ans_labels.pkl'</span>)
-        choose_id = <span class="hljs-number">17</span>
-        photo = dev_feat[choose_id]
-        photo = photo.split()
-        <span class="hljs-keyword">for</span> p <span class="hljs-keyword">in</span> photo:
-            p = int(p)
-        photo = np.array(photo)
-        <span class="hljs-keyword">for</span> cnt, fn <span class="hljs-keyword">in</span> enumerate(collect_layers):
-            im = fn([photo.reshape(<span class="hljs-number">1</span>,<span class="hljs-number">48</span>,<span class="hljs-number">48</span>,<span class="hljs-number">1</span>),<span class="hljs-number">0</span>])
-            fig = plt.figure(figsize=(<span class="hljs-number">14</span>,<span class="hljs-number">8</span>))
-            nb_filter = im[<span class="hljs-number">0</span>].shape[<span class="hljs-number">3</span>]
-            <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(nb_filter):
-                ax = fig.add_subplot(nb_filter/<span class="hljs-number">16</span>,<span class="hljs-number">16</span>,i+<span class="hljs-number">1</span>)
-                ax.imshow(im[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>,:,:,i],cmap=<span class="hljs-string">'Purples'</span>)
-                plt.xticks(np.array([]))
-                plt.yticks(np.array([]))
-                plt.tight_layout()
-            fig.suptitle(<span class="hljs-string">'Output of layer{} (Given image{})'</span>.format(cnt,choose_id))
-            img_path = os.path.join(vis_dir,store_path)
-            <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.isdir(img_path):
-                os.mkdir(img_path)
-            fig.savefig(os.path.join(img_path,<span class="hljs-string">'layer{}'</span>.format(cnt)))
+    <span class="hljs-keyword">for</span> idx <span class="hljs-keyword">in</span> img_ids:
+        val_proba = emotion_classifier.predict(private_pixels[idx])
+        pred = val_proba.argmax(axis=<span class="hljs-number">-1</span>)
+        target = K.mean(emotion_classifier.output[:, pred])
+        grads = K.gradients(target, input_img)[<span class="hljs-number">0</span>]
+        fn = K.function([input_img, K.learning_phase()], [grads])
 
-    <span class="hljs-keyword">else</span>:
-        name_ls = [<span class="hljs-string">'zero_padding2d_4'</span>]
-        collect_layers = list()
-        collect_layers.append(layer_dict[name_ls[<span class="hljs-number">0</span>]].output)
+        <span class="hljs-string">"""
+        Implement your heatmap processing here!
+        hint: Do some normalization or smoothening on grads
+        """</span>
 
-        <span class="hljs-keyword">for</span> cnt, c <span class="hljs-keyword">in</span> enumerate(collect_layers):
-            filter_imgs = [[] <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(NUM_STEPS//RECORD_FREQ)]
-            nb_filter = c.shape[<span class="hljs-number">-1</span>]
-            <span class="hljs-keyword">for</span> filter_idx <span class="hljs-keyword">in</span> range(nb_filter):
-                input_img_data = np.random.random((<span class="hljs-number">1</span>, <span class="hljs-number">48</span>, <span class="hljs-number">48</span>, <span class="hljs-number">1</span>))
-                loss = K.mean(c[:,:,:,filter_idx])
-                grads = normalize(K.gradients(loss,input_img)[<span class="hljs-number">0</span>])
-                iterate = K.function([input_img],[loss,grads])
-                
-                <span class="hljs-string">"""
-                "You need to implement it."
-                filter_imgs = grad_ascent(num_step, input_img_data, iterate)
-                """</span>
+        thres = <span class="hljs-number">0.5</span>
+        see = private_pixels[idx].reshape(<span class="hljs-number">48</span>, <span class="hljs-number">48</span>)
+        <span class="hljs-comment"># for i in range(48):</span>
+            <span class="hljs-comment"># for j in range(48):</span>
+                <span class="hljs-comment"># print heatmap[i][j]</span>
+        see[np.where(heatmap &lt;= thres)] = np.mean(see)
 
-            <span class="hljs-keyword">for</span> it <span class="hljs-keyword">in</span> range(NUM_STEPS//RECORD_FREQ):
-                fig = plt.figure(figsize=(<span class="hljs-number">14</span>,<span class="hljs-number">8</span>))
-                <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(nb_filter):
-                    ax = fig.add_subplot(int(nb_filter)/<span class="hljs-number">16</span>,<span class="hljs-number">16</span>,i+<span class="hljs-number">1</span>)
-                    ax.imshow(filter_imgs[it][i][<span class="hljs-number">0</span>],cmap=<span class="hljs-string">'Purples'</span>)
-                    plt.xticks(np.array([]))
-                    plt.yticks(np.array([]))
-                    plt.xlabel(<span class="hljs-string">'{:.3f}'</span>.format(filter_imgs[it][i][<span class="hljs-number">1</span>]))
-                    plt.tight_layout()
-                fig.suptitle(<span class="hljs-string">'Filters of layer {} (# Ascent Epoch {} )'</span>.format(name_ls[<span class="hljs-number">0</span>],it*RECORD_FREQ))
-                img_path = os.path.join(filter_dir,<span class="hljs-string">'{}-{}'</span>.format(store_path,name_ls[<span class="hljs-number">0</span>]))
-                <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.isdir(img_path):
-                    os.mkdir(img_path)
-                fig.savefig(os.path.join(img_path,<span class="hljs-string">'e{}'</span>.format(it*RECORD_FREQ)))
+        plt.figure()
+        plt.imshow(heatmap, cmap=plt.cm.jet)
+        plt.colorbar()
+        plt.tight_layout()
+        fig = plt.gcf()
+        plt.draw()
+        test_dir = os.path.join(cmap_dir, <span class="hljs-string">'test'</span>)
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.exists(test_dir):
+            os.makedirs(test_dir)
+        fig.savefig(os.path.join(test_dir, <span class="hljs-string">'{}.png'</span>.format(idx)), dpi=<span class="hljs-number">100</span>)
+
+        plt.figure()
+        plt.imshow(see,cmap=<span class="hljs-string">'gray'</span>)
+        plt.colorbar()
+        plt.tight_layout()
+        fig = plt.gcf()
+        plt.draw()
+        test_dir = os.path.join(partial_see_dir, <span class="hljs-string">'test'</span>)
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> os.path.exists(test_dir):
+            os.makedirs(test_dir)
+        fig.savefig(os.path.join(test_dir, <span class="hljs-string">'{}.png'</span>.format(idx)), dpi=<span class="hljs-number">100</span>)
 
 <span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">"__main__"</span>:
     main()
-</code></pre></div>
+</code></pre><div class="resize-sensor" style="position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; overflow: hidden; z-index: -1; visibility: hidden;"><div class="resize-sensor-expand" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; z-index: -1; visibility: hidden;"><div style="position: absolute; left: 0px; top: 0px; transition: 0s; width: 100000px; height: 100000px;"></div></div><div class="resize-sensor-shrink" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; z-index: -1; visibility: hidden;"><div style="position: absolute; left: 0; top: 0; transition: 0s; width: 200%; height: 200%"></div></div></div></div>
 
 
 ## Reference
