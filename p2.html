@@ -28,6 +28,245 @@ Problem Description:
 
 <img src="summary.png" alt="Summary" style="width: 900px;"/>
 
+<div id="doc" class="markdown-body container-fluid"><h1 id="hw3-手把手-q1">HW3 手把手 Q1</h1><h2 id="建立模型">建立模型</h2><pre><code class="python=3.6 hljs"><span class="hljs-comment">#!/usr/bin/env python</span>
+<span class="hljs-comment"># -- coding: utf-8 --</span>
+<span class="hljs-keyword">from</span> keras.models <span class="hljs-keyword">import</span> Model, load_model
+<span class="hljs-keyword">from</span> keras.layers <span class="hljs-keyword">import</span> Input, Dense, Dropout, Flatten, Activation, Reshape
+<span class="hljs-keyword">from</span> keras.layers.convolutional <span class="hljs-keyword">import</span> Conv2D, ZeroPadding2D
+<span class="hljs-keyword">from</span> keras.layers.pooling <span class="hljs-keyword">import</span> MaxPooling2D, AveragePooling2D
+<span class="hljs-keyword">from</span> keras.optimizers <span class="hljs-keyword">import</span> SGD, Adam, Adadelta
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">build_model</span><span class="hljs-params">()</span>:</span>
+	
+    <span class="hljs-string">'''
+    #先定義好框架
+    #第一步從input吃起
+    '''</span>
+    input_img = Input(shape=(<span class="hljs-number">48</span>, <span class="hljs-number">48</span>, <span class="hljs-number">1</span>))
+    <span class="hljs-string">'''
+    先來看一下keras document 的Conv2D
+    keras.layers.Conv2D(filters, kernel_size, strides=(1, 1), 
+        padding='valid', data_format=None, dilation_rate=(1, 1),
+        activation=None, use_bias=True, kernel_initializer='glorot_uniform',
+        bias_initializer='zeros', kernel_regularizer=None,
+        bias_regularizer=None, activity_regularizer=None,
+        kernel_constraint=None, bias_constraint=None)
+    '''</span>
+    block1 = Conv2D(<span class="hljs-number">64</span>, (<span class="hljs-number">5</span>, <span class="hljs-number">5</span>), padding=<span class="hljs-string">'valid'</span>, activation=<span class="hljs-string">'relu'</span>)(input_img)
+    block1 = ZeroPadding2D(padding=(<span class="hljs-number">2</span>, <span class="hljs-number">2</span>), data_format=<span class="hljs-string">'channels_last'</span>)(block1)
+    block1 = MaxPooling2D(pool_size=(<span class="hljs-number">5</span>, <span class="hljs-number">5</span>), strides=(<span class="hljs-number">2</span>, <span class="hljs-number">2</span>))(block1)
+    block1 = ZeroPadding2D(padding=(<span class="hljs-number">1</span>, <span class="hljs-number">1</span>), data_format=<span class="hljs-string">'channels_last'</span>)(block1)
+
+    block2 = Conv2D(<span class="hljs-number">64</span>, (<span class="hljs-number">3</span>, <span class="hljs-number">3</span>), activation=<span class="hljs-string">'relu'</span>)(block1)
+    block2 = ZeroPadding2D(padding=(<span class="hljs-number">1</span>, <span class="hljs-number">1</span>), data_format=<span class="hljs-string">'channels_last'</span>)(block2)
+    
+    block3 = Conv2D(<span class="hljs-number">64</span>, (<span class="hljs-number">3</span>, <span class="hljs-number">3</span>), activation=<span class="hljs-string">'relu'</span>)(block2)
+    block3 = AveragePooling2D(pool_size=(<span class="hljs-number">3</span>, <span class="hljs-number">3</span>), strides=(<span class="hljs-number">2</span>, <span class="hljs-number">2</span>))(block3)
+    block3 = ZeroPadding2D(padding=(<span class="hljs-number">1</span>, <span class="hljs-number">1</span>), data_format=<span class="hljs-string">'channels_last'</span>)(block3)
+    
+    block4 = Conv2D(<span class="hljs-number">128</span>, (<span class="hljs-number">3</span>, <span class="hljs-number">3</span>), activation=<span class="hljs-string">'relu'</span>)(block3)
+    block4 = ZeroPadding2D(padding=(<span class="hljs-number">1</span>, <span class="hljs-number">1</span>), data_format=<span class="hljs-string">'channels_last'</span>)(block4)
+
+    block5 = Conv2D(<span class="hljs-number">128</span>, (<span class="hljs-number">3</span>, <span class="hljs-number">3</span>), activation=<span class="hljs-string">'relu'</span>)(block4)
+    block5 = ZeroPadding2D(padding=(<span class="hljs-number">1</span>, <span class="hljs-number">1</span>), data_format=<span class="hljs-string">'channels_last'</span>)(block5)
+    block5 = AveragePooling2D(pool_size=(<span class="hljs-number">3</span>, <span class="hljs-number">3</span>), strides=(<span class="hljs-number">2</span>, <span class="hljs-number">2</span>))(block5)
+    block5 = Flatten()(block5)
+
+    fc1 = Dense(<span class="hljs-number">1024</span>, activation=<span class="hljs-string">'relu'</span>)(block5)
+    fc1 = Dropout(<span class="hljs-number">0.5</span>)(fc1)
+
+    fc2 = Dense(<span class="hljs-number">1024</span>, activation=<span class="hljs-string">'relu'</span>)(fc1)
+    fc2 = Dropout(<span class="hljs-number">0.5</span>)(fc2)
+
+    predict = Dense(<span class="hljs-number">7</span>)(fc2)
+    predict = Activation(<span class="hljs-string">'softmax'</span>)(predict)
+    model = Model(inputs=input_img, outputs=predict)
+
+    <span class="hljs-comment"># opt = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)</span>
+    <span class="hljs-comment"># opt = Adam(lr=1e-3)</span>
+    opt = Adadelta(lr=<span class="hljs-number">0.1</span>, rho=<span class="hljs-number">0.95</span>, epsilon=<span class="hljs-number">1e-08</span>)
+    model.compile(loss=<span class="hljs-string">'categorical_crossentropy'</span>, optimizer=opt, metrics=[<span class="hljs-string">'accuracy'</span>])
+    model.summary()
+    <span class="hljs-keyword">return</span> model
+</code></pre><hr><h2 id="training-file">Training File</h2><h5 id="不同於平常網路上的keras教學，我們使用比較多manual的loop-code來讓同學比較能瞭解epoch-“batch”-…的概念是什麼">不同於平常網路上的keras教學，我們使用比較多manual的loop code來讓同學比較能瞭解"epoch" “batch” …的概念是什麼</h5><pre><code class="python=3.6 hljs"><span class="hljs-comment"># This code is using tensorflow backend</span>
+<span class="hljs-comment">#!/usr/bin/env python</span>
+<span class="hljs-comment"># -- coding: utf-8 --</span>
+<span class="hljs-keyword">from</span> cnn_simple <span class="hljs-keyword">import</span> *
+<span class="hljs-keyword">from</span> utils <span class="hljs-keyword">import</span> *
+<span class="hljs-keyword">import</span> os
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> argparse
+<span class="hljs-keyword">import</span> time
+
+os.environ[<span class="hljs-string">'TF_CPP_MIN_LOG_LEVEL'</span>] = <span class="hljs-string">'2'</span>
+os.system(<span class="hljs-string">'echo $CUDA_VISIBLE_DEVICES'</span>)
+PATIENCE = <span class="hljs-number">5</span> <span class="hljs-comment"># The parameter is used for early stopping</span>
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>:</span>
+    parser = argparse.ArgumentParser(prog=<span class="hljs-string">'train.py'</span>)
+    parser.add_argument(<span class="hljs-string">'--epoch'</span>, type=int, default=<span class="hljs-number">1</span>)
+    parser.add_argument(<span class="hljs-string">'--batch'</span>, type=int, default=<span class="hljs-number">64</span>)
+    parser.add_argument(<span class="hljs-string">'--pretrain'</span>, type=bool, default=<span class="hljs-keyword">False</span>)
+    parser.add_argument(<span class="hljs-string">'--save_every'</span>, type=int, default=<span class="hljs-number">1</span>)
+    parser.add_argument(<span class="hljs-string">'--model_name'</span>, type=str, default=<span class="hljs-string">'model/model-1'</span>)
+    args = parser.parse_args()
+    
+    <span class="hljs-string">'''
+    To begin with, you should first read your csv training file and 
+    cut them into training set and validation set.
+    Such as:
+        with open(csvFile, 'r') as f:
+            f.readline()
+            for i, line in enumerate(f):
+                data = line.split(',')
+                label = data[0]
+                pixel = data[1]
+                ...
+                ...
+    In addition, we maintain it in array structure and save it in pickle
+    '''</span>
+    
+    <span class="hljs-comment"># training data</span>
+    train_pixels = load_pickle(<span class="hljs-string">'../train_pixels.pkl'</span>)
+    train_labels = load_pickle(<span class="hljs-string">'../train_labels.pkl'</span>)
+    <span class="hljs-keyword">print</span> (<span class="hljs-string">'# of training instances: '</span> + str(len(train_labels)))
+    
+    <span class="hljs-comment"># validation data</span>
+    valid_pixels = load_pickle(<span class="hljs-string">'../valid_pixels.pkl'</span>)
+    valid_labels = load_pickle(<span class="hljs-string">'../valid_labels.pkl'</span>)
+    <span class="hljs-keyword">print</span> (<span class="hljs-string">'# of validation instances: '</span> + str(len(valid_labels)))
+    
+    <span class="hljs-string">'''
+    Modify the answer format so as to correspond with the output of keras model
+    We can also do this to training data here, 
+        but we choose to do it in "train" function
+    '''</span>
+    
+    <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(len(valid_labels)):
+        valid_pixels[i] = np.fromstring(valid_pixels[i], dtype=float, sep=<span class="hljs-string">' '</span>).reshape((<span class="hljs-number">48</span>, <span class="hljs-number">48</span>, <span class="hljs-number">1</span>))
+        onehot = np.zeros((<span class="hljs-number">7</span>, ), dtype=np.float)
+        onehot[int(valid_labels[i])] = <span class="hljs-number">1.</span>
+        valid_labels[i] = onehot
+    
+    <span class="hljs-comment"># start training</span>
+    train(args.batch, args.epoch, args.pretrain, args.save_every,
+          train_pixels, train_labels,
+          np.asarray(valid_pixels), np.asarray(valid_labels),
+          args.model_name)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">train</span><span class="hljs-params">(batch_size, num_epoch, pretrain, save_every, train_pixels, train_labels, val_pixels, val_labels, model_name=None)</span>:</span>
+    
+    <span class="hljs-keyword">if</span> pretrain == <span class="hljs-keyword">False</span>:
+        model = build_model()
+    <span class="hljs-keyword">else</span>:
+        model = load_model(model_name)
+    
+    <span class="hljs-string">'''
+    "1 Epoch" means you have been looked all of the training data once already.
+    Batch size B means you look B instances at once when updating your parameter.
+    Thus, given 320 instances, batch size 32, you need 10 iterations in 1 epoch.
+    '''</span>
+            
+    num_instances = len(train_labels)
+    iter_per_epoch = int(num_instances / batch_size) + <span class="hljs-number">1</span>
+    batch_cutoff = [<span class="hljs-number">0</span>]
+    <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(iter_per_epoch - <span class="hljs-number">1</span>):
+        batch_cutoff.append(batch_size * (i+<span class="hljs-number">1</span>))
+    batch_cutoff.append(num_instances)
+
+    total_start_t = time.time()
+    best_metrics = <span class="hljs-number">0.0</span>
+    early_stop_counter = <span class="hljs-number">0</span>
+    <span class="hljs-keyword">for</span> e <span class="hljs-keyword">in</span> range(num_epoch):
+        <span class="hljs-comment">#shuffle data in every epoch</span>
+        rand_idxs = np.random.permutation(num_instances)
+        <span class="hljs-keyword">print</span> (<span class="hljs-string">'#######'</span>)
+        <span class="hljs-keyword">print</span> (<span class="hljs-string">'Epoch '</span> + str(e+<span class="hljs-number">1</span>))
+        <span class="hljs-keyword">print</span> (<span class="hljs-string">'#######'</span>)
+        start_t = time.time()
+
+        <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> range(iter_per_epoch):
+            <span class="hljs-keyword">if</span> i % <span class="hljs-number">50</span> == <span class="hljs-number">0</span>:
+                <span class="hljs-keyword">print</span> (<span class="hljs-string">'Iteration '</span> + str(i+<span class="hljs-number">1</span>))
+            X_batch = []
+            Y_batch = []
+            <span class="hljs-string">''' fill data into each batch '''</span>
+            <span class="hljs-keyword">for</span> n <span class="hljs-keyword">in</span> range(batch_cutoff[i], batch_cutoff[i+<span class="hljs-number">1</span>]):
+                X_batch.append(train_pixels[rand_idxs[n]])
+                Y_batch.append(np.zeros((<span class="hljs-number">7</span>, ), dtype=np.float))
+                X_batch[<span class="hljs-number">-1</span>] = np.fromstring(X_batch[<span class="hljs-number">-1</span>], dtype=float, sep=<span class="hljs-string">' '</span>).reshape((<span class="hljs-number">48</span>, <span class="hljs-number">48</span>, <span class="hljs-number">1</span>))
+                Y_batch[<span class="hljs-number">-1</span>][int(train_labels[rand_idxs[n]])] = <span class="hljs-number">1.</span>
+            
+            <span class="hljs-string">''' use these batch data to train your model '''</span>
+            model.train_on_batch(np.asarray(X_batch),np.asarray(Y_batch))
+        
+        <span class="hljs-string">'''
+        The above process is one epoch, and then we can check the performance now.
+        '''</span>
+        loss_and_metrics = model.evaluate(val_pixels, val_labels, batch_size)
+        <span class="hljs-keyword">print</span> (<span class="hljs-string">'\nloss &amp; metrics:'</span>)
+        <span class="hljs-keyword">print</span> (loss_and_metrics)
+        
+        <span class="hljs-string">'''
+        early stop is a mechanism to prevent your model from overfitting
+        '''</span>
+        <span class="hljs-keyword">if</span> loss_and_metrics[<span class="hljs-number">1</span>] &gt;= best_metrics:
+            best_metrics = loss_and_metrics[<span class="hljs-number">1</span>]
+            <span class="hljs-keyword">print</span> (<span class="hljs-string">"save best score!! "</span>+str(loss_and_metrics[<span class="hljs-number">1</span>]))
+            early_stop_counter = <span class="hljs-number">0</span>
+        <span class="hljs-keyword">else</span>:
+            early_stop_counter += <span class="hljs-number">1</span>  
+
+        <span class="hljs-string">'''
+        Sample code to write result :
+        
+        if e == e:
+            val_proba = model.predict(val_pixels)
+            val_classes = val_proba.argmax(axis=-1)
+            
+            
+            with open('result/simple_%s.csv' % str(e), 'w') as f:
+                f.write('acc = %s\n' % str(loss_and_metrics[1]))
+                f.write('id,label')
+                for i in range(len(val_classes)):
+                    f.write('\n' + str(i) + ',' + str(val_classes[i]))
+        '''</span>
+        
+        <span class="hljs-keyword">print</span> (<span class="hljs-string">'Elapsed time in epoch '</span> + str(e+<span class="hljs-number">1</span>) + <span class="hljs-string">': '</span> + str(time.time() - start_t))
+        
+        <span class="hljs-keyword">if</span> (e+<span class="hljs-number">1</span>) % save_every == <span class="hljs-number">0</span>:
+            model.save(<span class="hljs-string">'model/model-%d.h5'</span> %(e+<span class="hljs-number">1</span>))
+            <span class="hljs-keyword">print</span> (<span class="hljs-string">'Saved model %s!'</span> %str(e+<span class="hljs-number">1</span>))
+        
+        <span class="hljs-keyword">if</span> early_stop_counter &gt;= PATIENCE:
+            <span class="hljs-keyword">print</span> (<span class="hljs-string">'Stop by early stopping'</span>)
+            <span class="hljs-keyword">print</span> (<span class="hljs-string">'Best score: '</span>+str(best_metrics))
+            <span class="hljs-keyword">break</span>
+    
+    <span class="hljs-keyword">print</span> (<span class="hljs-string">'Elapsed time in total: '</span> + str(time.time() - total_start_t))
+
+<span class="hljs-keyword">if</span> __name__==<span class="hljs-string">'__main__'</span>:
+    main()
+</code></pre><hr><h2 id="plot-model">Plot model</h2><pre><code class="python hljs"><span class="hljs-comment">#!/usr/bin/env python</span>
+<span class="hljs-comment"># -- coding: utf-8 --</span>
+
+<span class="hljs-keyword">import</span> argparse
+<span class="hljs-keyword">from</span> keras.utils.vis_utils <span class="hljs-keyword">import</span> plot_model
+<span class="hljs-keyword">from</span> keras.models <span class="hljs-keyword">import</span> load_model
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>:</span>
+    parser = argparse.ArgumentParser(prog=<span class="hljs-string">'plot_model.py'</span>,
+            description=<span class="hljs-string">'Plot the model.'</span>)
+    parser.add_argument(<span class="hljs-string">'--model'</span>,type=str,default=<span class="hljs-string">'model/model-7.h5'</span>)
+    args = parser.parse_args()
+    
+    emotion_classifier = load_model(args.model)
+    emotion_classifier.summary()
+    plot_model(emotion_classifier,to_file=<span class="hljs-string">'model.png'</span>)
+
+<span class="hljs-keyword">if</span> __name__==<span class="hljs-string">'__main__'</span>:
+    main()
+</code></pre></div>
  
 </xmp>
 </xmp> <script src="strapdown.js"></script> </html>
